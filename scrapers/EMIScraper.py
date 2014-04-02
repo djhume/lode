@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import requests
-import BeautifulSoup
+from bs4 import BeautifulSoup
 import urllib2
 import os
 import sys
@@ -28,16 +28,13 @@ module_path = os.path.split(os.path.split(file_path)[0])[0]
 config_name = os.path.join(module_path, 'config.json')
 
 
-
 class EMIScraper(object):
     """Master Class for Scraping and Downloading EMI Files"""
     def __init__(self):
         super(EMIScraper, self).__init__()
         self.refresh_config()
-
         self.base_url = self.CONFIG['emi_base_url']
         self.temp_loc = self.CONFIG['temporary_location']
-
 
     def refresh_config(self):
         """ This permits hot loading of the config file instead of linking
@@ -48,7 +45,6 @@ class EMIScraper(object):
 
         return self
 
-
     def get_links(self, url):
         """ Use Requests and Beautiful Soup to get all of the links
         on a website.
@@ -58,10 +54,10 @@ class EMIScraper(object):
         url: A well formed url to be hit
         """
         r = requests.get(url)
-        soup = BeautifulSoup.BeautifulSoup(r.text)
+        soup = BeautifulSoup(r.text)
         self.all_links = soup.findAll('a')
-        return self
 
+        return self
 
     def build_url_db(self, url, pattern, ext, match_type='href',
                      rename=None, date_type="Monthly"):
@@ -80,7 +76,6 @@ class EMIScraper(object):
                     given, recommended to match against the link itself.
         date_type: Which parser to use
         """
-
         self.get_links(url)
         if match_type == 'href':
             self.pattern_files = [x for x in self.all_links if pattern in x['href']]
@@ -90,7 +85,6 @@ class EMIScraper(object):
         self.build_url_dates(pattern, ext, rename=rename, date_type=date_type)
 
         return self
-
 
     def build_url_dates(self, pattern, ext, rename=None, date_type="Monthly"):
         """ Once the list of URL links has been populated this function
@@ -104,8 +98,6 @@ class EMIScraper(object):
         date_type: Which parser to use
 
         """
-
-
         if ext in ('.gdx', '.XML', '.pdf'):
             single_mode = True
         else:
@@ -113,30 +105,28 @@ class EMIScraper(object):
 
         if date_type == "Monthly":
             self.url_dates = [self.parse_monthly_dates(x['href'], pattern, ext,
-                                rename=rename)for x in self.pattern_files]
+                              rename=rename)for x in self.pattern_files]
 
             self.url_base = {self.parse_monthly_dates(x['href'], pattern, ext,
-                                rename=rename): x['href'] for
-                                x in self.pattern_files}
-
+                             rename=rename): x['href'] for
+                             x in self.pattern_files}
 
         elif date_type == "Daily":
             all_dates = [self.parse_daily_dates(x['href'], pattern, ext,
                                                 rename=rename) for
-                                                x in self.pattern_files]
+                         x in self.pattern_files]
 
             self.url_dates = list(itertools.chain.from_iterable(all_dates))
 
             self.url_base = {self.parse_daily_dates(x['href'], pattern, ext,
-                                rename=rename,
-                                single_mode=single_mode): x['href'] for
-                                x in self.pattern_files}
+                             rename=rename,
+                             single_mode=single_mode): x['href'] for
+                             x in self.pattern_files}
 
         return self
 
-
     def build_unique_url_dates(self):
-        """ Compare two lists of dates and get the unique ones""""
+        """ Compare two lists of dates and get the unique ones"""
 
         self.unique_urls = self.get_list_difference(self.url_dates,
                                                     self.existing_dates)
@@ -161,7 +151,6 @@ class EMIScraper(object):
         datestring = self.scrub_string(x, pattern, ext, rename=rename)
         return datetime.datetime.strptime(datestring, '%Y%m')
 
-
     def scrub_string(self, x, pattern, ext, rename):
         """ Take a string and get it into a position where it could be
         converted to a datetime object
@@ -172,7 +161,6 @@ class EMIScraper(object):
         pattern: Pattern in the basename to match against
         ext: Filename extension
         rename: Optional second string incase filenames have changed.
-
         Returns:
         --------
         datestring: A string which can be parsed
@@ -202,7 +190,6 @@ class EMIScraper(object):
 
         return datestring
 
-
     def parse_daily_dates(self, x, pattern, ext, rename=None,
                           single_mode=False):
 
@@ -231,7 +218,7 @@ class EMIScraper(object):
         if len(datestring) == 7:
             date = datetime.datetime.strptime(datestring, '%Y%m')
             dates = [datetime.datetime(date.year, date.month, x) for x in
-                range(1, calendar.monthrange(date.year, date.month)[1] +1)]
+                     range(1, calendar.monthrange(date.year, date.month)[1] + 1)]
             return dates
 
         elif len(datestring) == 8:
@@ -242,7 +229,6 @@ class EMIScraper(object):
 
         else:
             return None
-
 
     def build_file_db(self, file_location, pattern, ext, rename=None,
                       date_type="Monthly"):
@@ -265,16 +251,13 @@ class EMIScraper(object):
 
         if date_type == "Monthly":
             flat_dates = [self.parse_monthly_dates(x, pattern, ext,
-                rename=rename) for x in all_files]
+                          rename=rename) for x in all_files]
 
         elif date_type == "Daily":
             all_dates = [self.parse_daily_dates(x, pattern, ext, rename=rename)
-                            for x in all_files]
+                         for x in all_files]
             flat_dates = list(itertools.chain.from_iterable(all_dates))
-
-
         self.existing_dates = flat_dates
-
 
     def get_list_difference(self, set_one, set_two):
         """ Use Set Logic to get the difference between two sets.
@@ -291,7 +274,6 @@ class EMIScraper(object):
         s2 = set(set_two)
         return list(s1.difference(s2))
 
-
     def download_csv_file(self, url_seed):
         """ Given a url seed, e.g. a relative URL download the link.
         This is typically a file which will be saved in a temporary location
@@ -307,11 +289,9 @@ class EMIScraper(object):
         save_location: Location where the string was saved to, or None
 
         """
-
         # os.path.join shits itself if the second string has a leading slash.
         if url_seed[0] == '/':
             url_seed = url_seed[1:]
-
         full_url = os.path.join(self.base_url, url_seed)
         save_location = os.path.join(self.temp_loc, os.path.basename(url_seed))
         try:
@@ -324,7 +304,6 @@ class EMIScraper(object):
             save_location = None
 
         return save_location
-
 
     def download_from_urls(self, url, pattern, file_location, rename=None,
                            date_type="Monthly", ext='.csv'):
@@ -340,7 +319,7 @@ class EMIScraper(object):
 
             if fName is not None:
                 final_location = self.move_completed_file(fName, file_location,
-                                            pattern, rename=rename)
+                                                          pattern, rename=rename)
                 print "%s succesfully downloaded" % os.path.basename(fName)
 
                 if ext == ".XML":
@@ -348,7 +327,6 @@ class EMIScraper(object):
 
             else:
                 print "%s was a dead link, continuing full steam" % url_seed
-
 
     def move_completed_file(self, fName, save_loc, pattern, rename=None):
         """ Moves a file to a new location, has support for doing a final
@@ -375,7 +353,6 @@ class EMIScraper(object):
 
         return end_location
 
-
     def synchronise_information(self, seed):
         """ Updates the information depending upon the seed and then
         creates two lists of date objects. One for the URL source one for
@@ -396,8 +373,8 @@ class EMIScraper(object):
         self.set_parameters(seed)
 
         self.download_from_urls(self.url, self.pattern, self.file_location,
-                rename=self.rename, date_type=self.date_type, ext=self.ext)
-
+                                rename=self.rename, date_type=self.date_type,
+                                ext=self.ext)
 
     def set_parameters(self, seed):
         """ Update the relevant parameters depending on the seed passed """
@@ -412,13 +389,11 @@ class EMIScraper(object):
         if not os.path.isdir(self.file_location):
             os.mkdir(self.file_location)
 
-
     def print_seeds(self):
         """Viewing tool to see the available seeds """
         for key in self.CONFIG.keys():
             if "EMI" in key:
                 print key
-
 
     def refresh_all_information(self):
         """ An aggregate function. Loops over all of the relevant seeds
@@ -430,7 +405,6 @@ class EMIScraper(object):
         for seed in seeds:
             print "Beginning Synchronisation for %s" % seed
             self.synchronise_information(seed)
-
 
     def parse_xml_to_csv(self, fName, tag="Row"):
         """ This will convert an XML file to a CSV file.
@@ -456,7 +430,7 @@ class EMIScraper(object):
         return self
 
 
-
 if __name__ == '__main__':
     EMI = EMIScraper()
-    EMI.refresh_all_information()
+    #EMI.refresh_all_information()
+    EMI.synchronise_information("EMI_Final_Prices")
